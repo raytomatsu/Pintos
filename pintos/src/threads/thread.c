@@ -264,7 +264,7 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_push_back (&ready_list, &t->elem);
+  list_insert_ordered(&ready_list, &t->elem, compare, 0);
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -335,7 +335,7 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread) 
-    list_push_back (&ready_list, &cur->elem);
+    list_insert_ordered (&ready_list, &cur->elem, compare, 0);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -602,7 +602,7 @@ schedule (void)
     ASSERT(is_thread(t));
 
     if(ticks >= t ->time_to_wake){
-      list_push_back(&ready_list, &t->elem);
+      list_insert_ordered(&ready_list, &t->elem, compare, 0);
       t -> status = THREAD_READY;
       curr = e;
       e = list_next(e);
@@ -636,6 +636,15 @@ allocate_tid (void)
 
   return tid;
 }
+
+int compare (struct list_elem *one, struct list_elem *two, void *aux) {
+  struct thread *thread_1 = list_entry(one,struct thread,elem);
+  struct thread *thread_2 = list_entry(two,struct thread,elem);
+  if (thread_1->priority > thread_2->priority) {
+    return 1;
+  }
+  return 0;
+ }
 
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
