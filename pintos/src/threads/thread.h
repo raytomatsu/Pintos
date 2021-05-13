@@ -129,7 +129,7 @@ const char *thread_name (void);
 void thread_exit (void) NO_RETURN;
 void thread_yield (void);
 void thread_sleep (int64_t);
-int compare (struct list_elem *one, struct list_elem *two,void *aux);
+bool compare (const struct list_elem *one, const struct list_elem *two,void *aux);
 
 /* Performs some operation on thread t, given auxiliary data AUX. */
 typedef void thread_action_func (struct thread *t, void *aux);

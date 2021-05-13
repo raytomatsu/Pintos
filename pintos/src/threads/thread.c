@@ -227,6 +227,8 @@ thread_create (const char *name, int priority,
 
   /* Add to run queue. */
   thread_unblock (t);
+  //add the running thread to the ready list so we can figure out who goes next
+  //thread_yield();
 
   return tid;
 }
@@ -264,7 +266,9 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_insert_ordered(&ready_list, &t->elem, compare, 0);
+  //priority sort
+  //list_insert_ordered(&ready_list, &t->elem, compare, 0);
+  list_push_back(&ready_list, &t->elem);
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -335,7 +339,9 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread) 
-    list_insert_ordered (&ready_list, &cur->elem, compare, 0);
+    //priortity sort
+    //list_insert_ordered (&ready_list, &cur->elem, compare, 0);
+    list_push_back(&ready_list, &cur->elem);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -602,7 +608,9 @@ schedule (void)
     ASSERT(is_thread(t));
 
     if(ticks >= t ->time_to_wake){
-      list_insert_ordered(&ready_list, &t->elem, compare, 0);
+      //priority sort
+      //list_insert_ordered(&ready_list, &t->elem, compare, 0);
+      list_push_back(&ready_list, &t->elem);
       t -> status = THREAD_READY;
       curr = e;
       e = list_next(e);
@@ -617,7 +625,7 @@ void print_sleep(void){
 
   while(curr != list_end(&threads_sleeping)){
     struct thread *t = list_entry(curr, struct thread, elem);
-    printf("thread wait %lld \n ", t -> time_to_wake);
+    printf("thread tid %lld \n ", t -> time_to_wake);
     curr = list_next(curr);
 
   }
@@ -637,13 +645,13 @@ allocate_tid (void)
   return tid;
 }
 
-int compare (struct list_elem *one, struct list_elem *two, void *aux) {
+bool compare (const struct list_elem *one, const struct list_elem *two, void *aux) {
   struct thread *thread_1 = list_entry(one,struct thread,elem);
   struct thread *thread_2 = list_entry(two,struct thread,elem);
   if (thread_1->priority > thread_2->priority) {
-    return 1;
+    return true;
   }
-  return 0;
+  return false;
  }
 
 /* Offset of `stack' member within `struct thread'.
