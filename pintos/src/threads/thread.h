@@ -142,5 +142,5 @@ int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
-
+bool compare (const struct list_elem *one, const struct list_elem *two, void *aux);
 #endif /* threads/thread.h */
