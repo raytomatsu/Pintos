@@ -238,7 +238,7 @@ lock_acquire (struct lock *lock)
         //If the lock is not donated to a thread
         if(!lock->is_donated){
           //add the number of donations that a thread recieves
-          lock->holder->donation_no += 1; 
+          lock->holder->donation_num += 1; 
         }
         //now change the lock to donated
         lock->is_donated = true; 
@@ -287,14 +287,14 @@ lock_release (struct lock *lock)
   list_sort(&lock_sema->waiters, compare, 0);
 
   if(lock->is_donated){
-    thread_current()->donation_no -= 1; 
+    thread_current()->donation_num -= 1; 
     int elem = list_entry(list_front(&lock_sema->waiters), struct thread, elem)->priority;
     search_array(thread_current(), elem);
     thread_current()->priority = thread_current()->priorities[(thread_current()->size) - 1];
     lock->is_donated = false;
   }
 
-  if(thread_current()-> donation_no == 0){
+  if(thread_current()-> donation_num == 0){
     thread_current()-> size = 1; 
     thread_current()-> priority = thread_current()->priorities[0];
   }

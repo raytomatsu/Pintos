@@ -498,7 +498,7 @@ init_thread (struct thread *t, const char *name, int priority)
 
   //initiliaze the list of priorities for the thread 
   t->priorities[0] = priority; 
-  t->donation_no = 0; 
+  t->donation_num = 0; 
   t ->size = 1; 
   t->waits = NULL;
 
@@ -667,13 +667,13 @@ void sort_ready_threads(void){
 }
 
 void search_array(struct thread *cur, int elem){
-  int found = 0;
+  bool found = false;
 
   for(int i = 0; i < cur->size - 1; i ++){
     if(cur->priorities[i] == elem){
-      found = 1; 
+      found = true; 
     }
-    if(found == 1){
+    if(found){
       cur->priorities[i] = cur->priorities[i + 1];
     }
   }

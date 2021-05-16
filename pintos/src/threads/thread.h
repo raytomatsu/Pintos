@@ -100,7 +100,7 @@ struct thread
     struct lock *waits; 
 
     int64_t time_to_wake;
-    int donation_no;
+    int donation_num;
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
