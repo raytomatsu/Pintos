@@ -652,6 +652,26 @@ bool compare (const struct list_elem *one, const struct list_elem *two, void *au
   }
 }
 
+/* //compare sleeping thread wake times by time_to_wake, then by priority
+bool compare_thread_sleep (const struct list_elem *one, const struct list_elem *two, void *aux) {
+  struct thread *t = list_entry(one, struct thread, elem);
+  struct thread *t2 = list_entry(two, struct thread, elem);
+
+  if (t->time_to_wake > t2->time_to_wake) {
+    return true;
+  } else if (t->time_to_wake < t2->time_to_wake) {
+    return false;
+    //if they're equal, use priority
+  } else {
+    if (t->priority > t2->priority) {
+    return true;
+  } else {
+    return false;
+  }
+  }
+}
+ */
+
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
