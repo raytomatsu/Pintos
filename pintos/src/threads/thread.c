@@ -83,8 +83,6 @@ void thread_sleep(int64_t ticks){
 
   struct thread *cur = thread_current();
 
-
-
   if(cur != idle_thread){
     // printf("thread_sleep \n");
     // print_sleep();
@@ -365,7 +363,11 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
-  thread_current ()->priority = new_priority;
+  thread_current ()->priorities[0] = new_priority;
+  if(thread_current() -> size == 1){
+    thread_current () -> priority = new_priority;
+    thread_yield();
+  }
 }
 
 /* Returns the current thread's priority. */
@@ -492,7 +494,15 @@ init_thread (struct thread *t, const char *name, int priority)
   strlcpy (t->name, name, sizeof t->name);
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
-  t->magic = THREAD_MAGIC;
+
+
+  //initiliaze the list of priorities for the thread 
+  t->priorities[0] = priority; 
+  t->donation_num = 0; 
+  t ->size = 1; 
+  t->waits = NULL;
+
+  t-> magic = THREAD_MAGIC;
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
@@ -671,6 +681,25 @@ bool compare_thread_sleep (const struct list_elem *one, const struct list_elem *
   }
 }
  */
+
+void sort_ready_threads(void){
+  list_sort(&ready_list, compare, 0);
+}
+
+void search_array(struct thread *cur, int elem){
+  bool found = false;
+
+  for(int i = 0; i < cur->size - 1; i ++){
+    if(cur->priorities[i] == elem){
+      found = true; 
+    }
+    if(found){
+      cur->priorities[i] = cur->priorities[i + 1];
+    }
+  }
+  cur->size -= 1; 
+}
+
 
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
