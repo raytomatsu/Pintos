@@ -227,7 +227,7 @@ lock_acquire (struct lock *lock)
         //add the temp priority to the end of the priority list 
         curr->holder->priorities[curr->holder->size] = temp->priority; 
         //increment the size of the priority list 
-        curr->holder->size += 1; 
+        curr->holder->size++; 
         //intialize the current hodler priority to the temp's priority 
         curr->holder->priority = temp->priority;
 
@@ -287,13 +287,13 @@ lock_release (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
 
-  struct semaphore *lock_sema = &lock->semaphore;
-  list_sort(&lock_sema->waiters, compare, 0);
+  struct semaphore *sem_lock = &lock->semaphore;
+  list_sort(&sem_lock->waiters, compare, 0);
 
   if(lock->is_donated){
     thread_current()->donation_num -= 1; 
     //delete this donation value out of the priority list bv the lock is given up
-    int value = list_entry(list_front(&lock_sema->waiters), struct thread, elem)->priority;
+    int value = list_entry(list_front(&sem_lock->waiters), struct thread, elem)->priority;
     delete_priority(thread_current(), value);
     //reset the priority variable bc we just deleted a value out of the list.
     thread_current()->priority = thread_current()->priorities[(thread_current()->size) - 1];
