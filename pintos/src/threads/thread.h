@@ -148,7 +148,9 @@ void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 bool compare (const struct list_elem *one, const struct list_elem *two, void *aux);
+bool compare_thread_sleep (const struct list_elem *one, const struct list_elem *two, void *aux);
 void sort_ready_threads(void);
 void delete_priority(struct thread* cur, int elem);
+void wakeup_thread(void);
 
 #endif /* threads/thread.h */

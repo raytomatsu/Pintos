@@ -68,7 +68,7 @@ sema_down (struct semaphore *sema)
   old_level = intr_disable ();
   while (sema->value == 0) 
     {
-     // list_push_back (&sema->waiters, &thread_current ()->elem);
+      //make sure to add it to the waiting list for the semaphore in priority order
       list_insert_ordered (&sema->waiters, &thread_current() -> elem, compare, 0);
       thread_block ();
     }
@@ -115,6 +115,8 @@ sema_up (struct semaphore *sema)
 
   old_level = intr_disable ();
   if (!list_empty (&sema->waiters)){
+
+    //make sure the right thread gets to go first
     list_sort(&sema->waiters, compare, 0);
     thread_unblock (list_entry (list_pop_front (&sema->waiters),
                                 struct thread, elem));
@@ -214,12 +216,14 @@ lock_acquire (struct lock *lock)
 
       //intialize a temp variable from the current thread; 
       struct thread * temp = thread_current();
-      //if the lock within the thread is NULL
+    
+      //DONATION
       while(temp-> waits != NULL){
 
         //get the lock that the thread is waiting for 
         struct lock *curr = temp->waits;
 
+        
         //add the temp priority to the end of the priority list 
         curr->holder->priorities[curr->holder->size] = temp->priority; 
         //increment the size of the priority list 
@@ -242,8 +246,8 @@ lock_acquire (struct lock *lock)
         }
         //now change the lock to donated
         lock->is_donated = true; 
-        //reorganize as they recieved new priorities 
-        sort_ready_threads();
+        //reorganize ready list; they recieved new priorities 
+        sort_readylist();
     }
   }
 
@@ -288,8 +292,10 @@ lock_release (struct lock *lock)
 
   if(lock->is_donated){
     thread_current()->donation_num -= 1; 
-    int elem = list_entry(list_front(&lock_sema->waiters), struct thread, elem)->priority;
-    search_array(thread_current(), elem);
+    //delete this donation value out of the priority list bv the lock is given up
+    int value = list_entry(list_front(&lock_sema->waiters), struct thread, elem)->priority;
+    delete_priority(thread_current(), value);
+    //reset the priority variable bc we just deleted a value out of the list.
     thread_current()->priority = thread_current()->priorities[(thread_current()->size) - 1];
     lock->is_donated = false;
   }
@@ -362,7 +368,7 @@ cond_wait (struct condition *cond, struct lock *lock)
   ASSERT (lock_held_by_current_thread (lock));
   
   sema_init (&waiter.semaphore, 0);
- // list_push_back (&cond->waiters, &waiter.elem);
+ // add ordered
   list_insert_ordered (&cond->waiters, &waiter.elem, compare, 0);
   lock_release (lock);
   sema_down (&waiter.semaphore);

@@ -77,21 +77,22 @@ void thread_sleep (int64_t);
 
 static struct list threads_sleeping;
 
-void thread_sleep(int64_t ticks){
-  enum intr_level old_level;
-  old_level = intr_disable();
 
+//put thread to sleep - add it onto the threads sleeping list to be woken up later when needed.
+void thread_sleep(int64_t ticks){
+  
   struct thread *cur = thread_current();
+  cur-> time_to_wake = timer_ticks() + ticks;
 
   if(cur != idle_thread){
-    // printf("thread_sleep \n");
-    // print_sleep();
+    enum intr_level old_level;
+    old_level = intr_disable();
+    //insert into list (ordered to consider priority)
     list_push_back(&threads_sleeping, &cur->elem);
     cur-> status = THREAD_SLEEP;
-    cur-> time_to_wake = timer_ticks() + ticks;
     schedule();
+    intr_set_level(old_level);
   }
-  intr_set_level(old_level);
 }
 
 
@@ -335,7 +336,7 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread) 
-    //list_push_back (&ready_list, &cur->elem);
+    //make sure to consider priority
     list_insert_ordered (&ready_list, &cur->elem, compare, 0);
   cur->status = THREAD_READY;
   schedule ();
@@ -363,7 +364,10 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
+  //update list of priorities (for donation)
   thread_current ()->priorities[0] = new_priority;
+
+  //if the thread doesnt have a donated priority list, just set the priority attribute
   if(thread_current() -> size == 1){
     thread_current () -> priority = new_priority;
     thread_yield();
@@ -604,28 +608,35 @@ schedule (void)
     prev = switch_threads (cur, next);
   thread_schedule_tail (prev);
 
+}
+
+
+//wake up a sleeping thread and take it off the sleeping list 
+void
+wakeup_thread (void) 
+{
+  ASSERT (intr_get_level () == INTR_OFF);
+
   struct list_elem *curr, *e = list_begin(&threads_sleeping);
   int64_t ticks = timer_ticks();
 
-  // printf("Schedule at %lld \n", ticks);
-  // print_sleep();
-
+  //check the whole list
   while(e != list_end(&threads_sleeping)){
     struct thread *t = list_entry(e, struct thread, elem);
     ASSERT(is_thread(t));
-
+    //check if its time to wake up
     if(ticks >= t ->time_to_wake){
       t -> status = THREAD_READY;
       curr = e;
       e = list_next(e);
       list_remove(curr);
-      //list_push_back(&ready_list, &t->elem);
-      list_insert_ordered (&ready_list, &t->elem, compare, 0);
+      list_push_back (&ready_list, &t->elem);
     }
     else e = list_next(e);
   }
 }
 
+//print contents of sleeping list
 void print_sleep(void){
   struct list_elem *curr = list_begin(&threads_sleeping);
 
@@ -651,6 +662,7 @@ allocate_tid (void)
   return tid;
 }
 
+//compare thread priority
 bool compare (const struct list_elem *one, const struct list_elem *two, void *aux) {
   struct thread *t = list_entry(one, struct thread, elem);
   struct thread *t2 = list_entry(two, struct thread, elem);
@@ -662,42 +674,25 @@ bool compare (const struct list_elem *one, const struct list_elem *two, void *au
   }
 }
 
-/* //compare sleeping thread wake times by time_to_wake, then by priority
-bool compare_thread_sleep (const struct list_elem *one, const struct list_elem *two, void *aux) {
-  struct thread *t = list_entry(one, struct thread, elem);
-  struct thread *t2 = list_entry(two, struct thread, elem);
-
-  if (t->time_to_wake > t2->time_to_wake) {
-    return true;
-  } else if (t->time_to_wake < t2->time_to_wake) {
-    return false;
-    //if they're equal, use priority
-  } else {
-    if (t->priority > t2->priority) {
-    return true;
-  } else {
-    return false;
-  }
-  }
-}
- */
-
-void sort_ready_threads(void){
+//this is so we can perform list_sort on the ready list from the synch.c file
+void sort_readylist(void){
   list_sort(&ready_list, compare, 0);
 }
 
-void search_array(struct thread *cur, int elem){
-  bool found = false;
+//remove a priority from the list of priorities that a thread holds 
+void delete_priority(struct thread *t, int value){
+  bool start = false;
 
-  for(int i = 0; i < cur->size - 1; i ++){
-    if(cur->priorities[i] == elem){
-      found = true; 
+  for(int i = 0; i < t->size - 1; i ++){
+    if(t->priorities[i] == value){
+      start = true; 
     }
-    if(found){
-      cur->priorities[i] = cur->priorities[i + 1];
+    if(start){
+      //move each of these indeces up one
+      t->priorities[i] = t->priorities[i + 1];
     }
   }
-  cur->size -= 1; 
+  t->size -= 1; 
 }
 
 
